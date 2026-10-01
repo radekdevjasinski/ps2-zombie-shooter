@@ -1,17 +1,20 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class FPSCamera : MonoBehaviour
 {
+    private const float MaxPitch = 15f;
+
     public float sens;
-
     public Transform orientation;
-
-    float rotationX;
-    float rotationY;
-
     public bool lockMovement = false;
+
+    private float pitch;
+    private float yaw;
+
+    void Awake()
+    {
+        sens = GameSettings.LoadMouseSensitivity(sens);
+    }
 
     void Start()
     {
@@ -21,17 +24,22 @@ public class FPSCamera : MonoBehaviour
 
     void Update()
     {
-        if (lockMovement) return;
-        float mouseX = Input.GetAxisRaw("Mouse X") * Time.deltaTime * sens;
-        float mouseY = Input.GetAxisRaw("Mouse Y") * Time.deltaTime * sens;
+        if (lockMovement || PauseMenu.IsGamePaused)
+        {
+            return;
+        }
 
+        yaw += Input.GetAxisRaw("Mouse X") * sens;
+        pitch -= Input.GetAxisRaw("Mouse Y") * sens;
+        pitch = Mathf.Clamp(pitch, -MaxPitch, MaxPitch);
 
-        rotationY += mouseX;
-        rotationX -= mouseY;
+        transform.rotation = Quaternion.Euler(pitch, yaw, 0f);
+        orientation.rotation = Quaternion.Euler(0f, yaw, 0f);
+    }
 
-        rotationX = Mathf.Clamp(rotationX, -15f, 15f);
-
-        transform.rotation = Quaternion.Euler(rotationX, rotationY, 0);
-        orientation.rotation = Quaternion.Euler(rotationX, rotationY, 0);
+    public void SetSensitivity(float sensitivity)
+    {
+        sens = sensitivity;
+        GameSettings.SaveMouseSensitivity(sensitivity);
     }
 }

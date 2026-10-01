@@ -1,105 +1,123 @@
-using System.Collections;
-using System.Collections.Generic;
+using System;
 using UnityEngine;
 using UnityEngine.AI;
 
+[RequireComponent(typeof(NavMeshAgent))]
 public class EnemyAI : MonoBehaviour
 {
-    [Header("EnemyUI")]
-    public NavMeshAgent agent;
-    public Transform player;
-    public LayerMask playerMask;
+    private const string RagdollLayerName = "ragdoll";
+    private const float RepathInterval = 0.25f;
+    private const float ClosestBodyForceDivisor = 2.5f;
 
-    [Header("HitPoints")]
-    public float maxHP = 100f;
-    public float playerDMG = 50f;
-    public bool isDead = false;
-    [SerializeField]
-    public GameObject killCount;
+    [SerializeField] private GameObject playerBlocker;
+    [SerializeField] private float hitForce = 250f;
+    [SerializeField] private float corpseLifetime = 10f;
 
+    public event Action<EnemyAI> Died;
+
+    public bool IsDead { get; private set; }
+
+    private NavMeshAgent agent;
+    private Animator animator;
+    private Transform player;
     private Rigidbody[] ragdollBodies;
-    [SerializeField]
-    private GameObject playerBlocker;
-    public GameObject game;
+    private int ragdollLayer;
+    private float nextRepathTime;
 
-
-    void Start()
+    void Awake()
     {
-        player = GameObject.Find("Player").transform;
-        killCount = GameObject.Find("Count");
         agent = GetComponent<NavMeshAgent>();
-        game = GameObject.Find("Game");
-        SetRagdollState(false);
+        animator = GetComponentInChildren<Animator>();
+        ragdollBodies = GetComponentsInChildren<Rigidbody>();
+        ragdollLayer = LayerMask.NameToLayer(RagdollLayerName);
+        SetRagdollEnabled(false);
+    }
 
+    public void Initialize(Transform playerTransform)
+    {
+        player = playerTransform;
     }
 
     void Update()
     {
-        ChasePlayer();
-    }
-    void ChasePlayer()
-    {
-        agent.SetDestination(player.position);
-        transform.LookAt(player);
-    }
-
-    public void Damage(Vector3 hitPoint, Vector3 forceDirection, float forceAmount = 250f)
-    {
-        //Destroy(gameObject, 5f);
-        Destroy(playerBlocker);
-        SetRagdollState(true);
-        SetRagdollLayer(this.transform);
-        killCount.GetComponent<KillCount>().AddKill();
-        Destroy(gameObject.GetComponentInChildren<Animator>());
-        Destroy(gameObject.GetComponent<NavMeshAgent>());
-        Destroy(gameObject.GetComponent<EnemyAI>());
-
-        // Znajdź najbliższą kość (Rigidbody) względem punktu trafienia
-        Rigidbody closestRb = null;
-        float closestDistance = float.MaxValue;
-
-        foreach (var rb in GetComponentsInChildren<Rigidbody>())
+        if (Time.time < nextRepathTime || !agent.isOnNavMesh)
         {
-            float dist = Vector3.Distance(hitPoint, rb.worldCenterOfMass);
-            if (dist < closestDistance)
+            return;
+        }
+
+        agent.SetDestination(player.position);
+        nextRepathTime = Time.time + RepathInterval;
+    }
+
+    public void Kill(Vector3 hitPoint, Vector3 forceDirection)
+    {
+        if (IsDead)
+        {
+            return;
+        }
+
+        IsDead = true;
+        enabled = false;
+        agent.enabled = false;
+        animator.enabled = false;
+        Destroy(playerBlocker);
+
+        SetRagdollEnabled(true);
+        MoveToRagdollLayer();
+        ApplyHitForce(hitPoint, forceDirection.normalized);
+
+        Died?.Invoke(this);
+        Destroy(gameObject, corpseLifetime);
+    }
+
+    private void ApplyHitForce(Vector3 hitPoint, Vector3 direction)
+    {
+        Rigidbody closestBody = FindClosestRagdollBody(hitPoint);
+        foreach (Rigidbody body in ragdollBodies)
+        {
+            float force = body == closestBody
+                ? hitForce / ClosestBodyForceDivisor
+                : hitForce / ragdollBodies.Length;
+            body.AddForce(direction * force, ForceMode.Impulse);
+        }
+    }
+
+    private Rigidbody FindClosestRagdollBody(Vector3 point)
+    {
+        Rigidbody closestBody = null;
+        float closestSqrDistance = float.MaxValue;
+        foreach (Rigidbody body in ragdollBodies)
+        {
+            float sqrDistance = (point - body.worldCenterOfMass).sqrMagnitude;
+            if (sqrDistance < closestSqrDistance)
             {
-                closestDistance = dist;
-                closestRb = rb;
+                closestSqrDistance = sqrDistance;
+                closestBody = body;
             }
         }
-
-        // Dodaj siłę
-        if (closestRb != null)
-        {
-            closestRb.AddForce(forceDirection.normalized * (forceAmount / 2.5f), ForceMode.Impulse);
-        }
-
-        // Rozdziel siłę na wszystkie Rigidbody
-        Rigidbody[] rigidbodies = GetComponentsInChildren<Rigidbody>();
-        foreach (var rb in rigidbodies)
-        {
-            if (rb == closestRb) continue;
-            rb.AddForce(forceDirection.normalized * (forceAmount / rigidbodies.Length), ForceMode.Impulse);
-        }
-        isDead = true;
+        return closestBody;
     }
 
-
-    private void SetRagdollState(bool state)
+    private void SetRagdollEnabled(bool isRagdollEnabled)
     {
-        ragdollBodies = GetComponentsInChildren<Rigidbody>();
-        foreach (var rb in ragdollBodies)
+        foreach (Rigidbody body in ragdollBodies)
         {
-            rb.isKinematic = !state;
-            rb.interpolation = state ? RigidbodyInterpolation.Interpolate : RigidbodyInterpolation.None;
+            body.isKinematic = !isRagdollEnabled;
+            body.interpolation = isRagdollEnabled ? RigidbodyInterpolation.Interpolate : RigidbodyInterpolation.None;
         }
     }
-    void SetRagdollLayer(Transform root, string layerName = "ragdoll")
+
+    private void MoveToRagdollLayer()
     {
-        int layer = LayerMask.NameToLayer(layerName);
-        foreach (Transform t in root.GetComponentsInChildren<Transform>())
+        if (ragdollLayer < 0)
         {
-            t.gameObject.layer = layer;
+            Debug.LogError($"Layer '{RagdollLayerName}' is missing in Tags and Layers; corpse keeps its enemy layer.", this);
+            return;
+        }
+
+        foreach (Transform bone in GetComponentsInChildren<Transform>())
+        {
+            bone.gameObject.layer = ragdollLayer;
         }
     }
 }

@@ -3103,7 +3103,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 15406fbf9769cda48aed8850cf799087, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  sens: 400
+  sens: 6.7
   orientation: {fileID: 286479572}
   lockMovement: 0
 --- !u!114 &963194230
@@ -4585,7 +4585,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1250888531}
-  - component: {fileID: 1250888532}
   m_Layer: 11
   m_Name: WeaponHolder
   m_TagString: Untagged
@@ -4610,20 +4609,6 @@ Transform:
   - {fileID: 163949255}
   m_Father: {fileID: 963194228}
   m_LocalEulerAnglesHint: {x: 30.47, y: 0, z: 0}
---- !u!114 &1250888532
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1250888530}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: baaa093204f3d3a4f8f76b4deacffac9, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cooldown: 0.5
-  isAttacking: 0
 --- !u!1 &1251646803
 GameObject:
   m_ObjectHideFlags: 0
@@ -5031,7 +5016,6 @@ GameObject:
   m_Component:
   - component: {fileID: 1337043559}
   - component: {fileID: 1337043560}
-  - component: {fileID: 1337043562}
   - component: {fileID: 1337043561}
   m_Layer: 11
   m_Name: Sword
@@ -5102,19 +5086,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 4.816262, y: 3.9613874, z: 3.4775326}
   m_Center: {x: -1.1837302, y: 1.480701, z: 1.2387841}
---- !u!114 &1337043562
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1337043558}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e95a821cf506036449a1be8902e74e29, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  controller: {fileID: 1250888532}
 --- !u!1 &1379757813
 GameObject:
   m_ObjectHideFlags: 0
@@ -5468,7 +5439,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 31c5c505365f7b64db1a80d524e25224, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  count: 0
+  enemiesSpawner: {fileID: 669030260}
 --- !u!1 &1479526073
 GameObject:
   m_ObjectHideFlags: 0
@@ -11526,10 +11497,10 @@ MonoBehaviour:
   m_FillRect: {fileID: 2060512840}
   m_HandleRect: {fileID: 1531914750}
   m_Direction: 0
-  m_MinValue: 10
-  m_MaxValue: 600
+  m_MinValue: 0.2
+  m_MaxValue: 10
   m_WholeNumbers: 1
-  m_Value: 199
+  m_Value: 6.7
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls:
@@ -11644,7 +11615,7 @@ MonoBehaviour:
   health: 0
   endImage: {fileID: 997097421}
   damageRange: 3
-  damageAmount: 1
+  damageAmount: 10
   damageLayer:
     serializedVersion: 2
     m_Bits: 512

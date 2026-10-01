@@ -1,70 +1,71 @@
-using System.Collections;
-using System.Collections.Generic;
-using Unity.VisualScripting;
 using UnityEngine;
-using UnityEngine.Audio;
-using UnityEngine.Rendering;
+using UnityEngine.Serialization;
 
 public class PauseMenu : MonoBehaviour
 {
-    public AudioMixer mixer;
-    public static bool isGamePaused = false;
+    public static bool IsGamePaused { get; private set; }
 
     public GameObject pauseMenu;
-    public GameObject x;
+    [FormerlySerializedAs("x")]
+    public GameObject crosshair;
 
-    private void Update()
+    void Awake()
     {
-        if (Input.GetKeyDown(KeyCode.Escape))
+        ApplyPauseState(false);
+    }
+
+    void OnDestroy()
+    {
+        ApplyPauseState(false);
+    }
+
+    void Update()
+    {
+        if (!Input.GetKeyDown(KeyCode.Escape))
         {
-            if (isGamePaused)
-            {
-                Resume();
-            }
-            else
-            {
-                Pause();
-            }
+            return;
         }
-    }
 
-    public void SetVolume(float volume)
-    {
-        mixer.SetFloat("volume", volume);
-    }
-
-    public void SetQuality(int qualityIndex)
-    {
-        QualitySettings.SetQualityLevel(qualityIndex);
-    }
-    public void FullScreen(bool isFullScreen)
-    {
-        Screen.fullScreen = isFullScreen;
+        if (IsGamePaused)
+        {
+            Resume();
+        }
+        else
+        {
+            Pause();
+        }
     }
 
     public void Pause()
     {
+        ApplyPauseState(true);
         pauseMenu.SetActive(true);
-        Time.timeScale = 0f;
-        isGamePaused = true;
-        Cursor.lockState = CursorLockMode.Confined;
+        crosshair.SetActive(false);
+        Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
-        x.SetActive(false);
     }
+
     public void Resume()
     {
+        ApplyPauseState(false);
         pauseMenu.SetActive(false);
-        Time.timeScale = 1f;
-        isGamePaused = false;
+        crosshair.SetActive(true);
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
-        x.SetActive(true);
     }
+
     public void ExitGame()
     {
         Application.Quit();
-        #if UNITY_EDITOR
-                UnityEditor.EditorApplication.isPlaying = false; // Stop playing in the editor
-        #endif
+#if UNITY_EDITOR
+        UnityEditor.EditorApplication.isPlaying = false;
+#endif
+    }
+
+    private static void ApplyPauseState(bool isPaused)
+    {
+        IsGamePaused = isPaused;
+        Time.timeScale = isPaused ? 0f : 1f;
+        AudioListener.pause = isPaused;
     }
 }

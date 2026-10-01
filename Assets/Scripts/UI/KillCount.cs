@@ -1,23 +1,38 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
 using TMPro;
+using UnityEngine;
 
+[RequireComponent(typeof(TMP_Text))]
 public class KillCount : MonoBehaviour
 {
-    [Header("Kill Counter")]
-    public int count = 0;
+    [SerializeField] private EnemiesSpawner enemiesSpawner;
+
     private TMP_Text text;
-    void Start()
+    private int count;
+
+    void Awake()
     {
         text = GetComponent<TMP_Text>();
+        ShowCount();
     }
-    void Update()
+
+    void OnEnable()
     {
-        text.text = count.ToString();
+        enemiesSpawner.EnemyKilled += AddKill;
     }
-    public void AddKill()
+
+    void OnDisable()
+    {
+        enemiesSpawner.EnemyKilled -= AddKill;
+    }
+
+    private void AddKill()
     {
         count++;
+        ShowCount();
+    }
+
+    private void ShowCount()
+    {
+        text.text = count.ToString();
     }
 }

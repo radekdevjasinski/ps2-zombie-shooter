@@ -1,23 +1,37 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
+[RequireComponent(typeof(Slider))]
 public class HPSlider : MonoBehaviour
 {
+    [SerializeField] private PlayerHealth playerHealth;
+
     private Slider slider;
-    private PlayerHealth playerHealth;
-    void Start()
+
+    void Awake()
     {
         slider = GetComponent<Slider>();
-        playerHealth = GameObject.Find("Player").GetComponent<PlayerHealth>();
-
-        slider.minValue = 0;
-        slider.maxValue = playerHealth.maxHP;
+        slider.minValue = 0f;
+        slider.maxValue = 1f;
     }
 
-    void Update()
+    void OnEnable()
     {
-        slider.value = playerHealth.health;
+        playerHealth.HealthFractionChanged += ShowHealthFraction;
+    }
+
+    void OnDisable()
+    {
+        playerHealth.HealthFractionChanged -= ShowHealthFraction;
+    }
+
+    void Start()
+    {
+        ShowHealthFraction(playerHealth.HealthFraction);
+    }
+
+    private void ShowHealthFraction(float healthFraction)
+    {
+        slider.value = healthFraction;
     }
 }

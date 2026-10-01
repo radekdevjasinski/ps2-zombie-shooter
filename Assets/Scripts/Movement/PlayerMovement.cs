@@ -1,83 +1,73 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
+[RequireComponent(typeof(Rigidbody))]
 public class PlayerMovement : MonoBehaviour
 {
+    private const float MoveForceMultiplier = 10f;
+
+    private static readonly int SpeedParameter = Animator.StringToHash("speed");
+
     [Header("Movement")]
     public float speedDefault;
     public float drag;
     public Transform orientation;
-    [SerializeField]
-    private float speed;
     public Animator animator;
     public bool movementEnabled = true;
 
-    float horizontalInput;
-    float verticalInput;
-
-    Vector3 moveDirection;
-
-    Rigidbody rb;
-
+    private float horizontalInput;
+    private float verticalInput;
+    private Rigidbody rb;
 
     void Start()
     {
         rb = GetComponent<Rigidbody>();
         rb.freezeRotation = true;
-        speed = speedDefault;
+        rb.linearDamping = drag;
     }
 
     void Update()
     {
-        if (movementEnabled)
-        {
-            PlayerInput();
-            SpeedControl();
-            rb.linearDamping = drag;
-        }
-        else
-        {
-            rb.linearDamping = 0f; // Disable drag when movement is not enabled
-            rb.linearVelocity = Vector3.zero; // Stop the player from moving
-        }
-
+        horizontalInput = Input.GetAxisRaw("Horizontal");
+        verticalInput = Input.GetAxisRaw("Vertical");
     }
+
     void FixedUpdate()
     {
         if (!movementEnabled)
         {
-            animator.SetFloat("speed", 0f);
-            return; 
+            StopHorizontalMovement();
+            animator.SetFloat(SpeedParameter, 0f);
+            return;
         }
+
         MovePlayer();
-        animator.SetFloat("speed", rb.linearVelocity.magnitude);
+        LimitHorizontalSpeed();
+        animator.SetFloat(SpeedParameter, rb.linearVelocity.magnitude);
     }
 
-    void PlayerInput()
+    private void MovePlayer()
     {
-        horizontalInput = Input.GetAxisRaw("Horizontal");
-        verticalInput = Input.GetAxisRaw("Vertical");
-
-    }
-
-    void MovePlayer()
-    {
-        // Płaska wersja forward i right (ignoruj Y)
         Vector3 flatForward = Vector3.ProjectOnPlane(orientation.forward, Vector3.up).normalized;
         Vector3 flatRight = Vector3.ProjectOnPlane(orientation.right, Vector3.up).normalized;
+        Vector3 moveDirection = (flatForward * verticalInput + flatRight * horizontalInput).normalized;
 
-        moveDirection = flatForward * verticalInput + flatRight * horizontalInput;
-        rb.AddForce(moveDirection * speed * 10f, ForceMode.Force);
+        rb.AddForce(moveDirection * speedDefault * MoveForceMultiplier, ForceMode.Force);
     }
-    void SpeedControl()
-    {
-        Vector3 flatVelocity = new Vector3(rb.linearVelocity.x, 0, rb.linearVelocity.z);
 
-        if (flatVelocity.magnitude > speed)
+    private void LimitHorizontalSpeed()
+    {
+        Vector3 flatVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
+        if (flatVelocity.magnitude <= speedDefault)
         {
-            Vector3 limitedVelocity = flatVelocity.normalized * speed;
-            rb.linearVelocity = new Vector3(limitedVelocity.x, rb.linearVelocity.y, limitedVelocity.z); 
+            return;
         }
+
+        Vector3 limitedVelocity = flatVelocity.normalized * speedDefault;
+        rb.linearVelocity = new Vector3(limitedVelocity.x, rb.linearVelocity.y, limitedVelocity.z);
+    }
+
+    private void StopHorizontalMovement()
+    {
+        rb.linearVelocity = new Vector3(0f, rb.linearVelocity.y, 0f);
     }
 }
